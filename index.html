@@ -21,7 +21,7 @@
     <script type="text/babel">
         const { useState } = React;
 
-        // --- COMPONENTE DE GRÁFICO CUSTOMIZADO (Remove dependência do Recharts para evitar bugs no CDN) ---
+        /* --- COMPONENTE DE GRÁFICO CUSTOMIZADO --- */
         const CustomBarChart = ({ data }) => {
           const maxVal = Math.max(...data.map(d => d.value), 1);
           return (
@@ -49,7 +49,7 @@
           );
         };
 
-        // --- ÍCONES (Substituindo Lucide por SVGs inline para não quebrar no GitHub Pages) ---
+        /* --- ÍCONES --- */
         const Icon = ({ path, className }) => (
             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className} dangerouslySetInnerHTML={{ __html: path }} />
         );
@@ -72,7 +72,7 @@
             BookOpen: (p) => <Icon {...p} path='<path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/>' />
         };
 
-        // --- DATABASE E INTELIGÊNCIA GEOGRÁFICA ---
+        /* --- DATABASE E INTELIGÊNCIA GEOGRÁFICA --- */
         const regionsData = {
           "rm_goiania": {
             label: "Goiânia e Região",
@@ -104,7 +104,6 @@
         const segmentsData = {
           "transversal": {
             label: "Transversal (Metrologia)",
-            icon: <Icons.Factory className="w-4 h-4" />,
             fichas: {
               "metrologia": {
                 label: "Metrologia - Ensaios",
@@ -150,7 +149,6 @@
           },
           "textil": {
             label: "Têxtil e Moda",
-            icon: <Icons.ShoppingCart className="w-4 h-4" />,
             fichas: {
               "colecoes": {
                 label: "Desenvolvimento de Coleções",
@@ -176,7 +174,6 @@
           },
           "alimentos": {
             label: "Alimentos e Agro",
-            icon: <Icons.Droplet className="w-4 h-4" />,
             fichas: {
               "appcc": {
                 label: "Sistema APPCC (Segurança)",
@@ -221,7 +218,6 @@
           },
           "quimica": {
             label: "Química e Cosméticos",
-            icon: <Icons.FlaskConical className="w-4 h-4" />,
             fichas: {
               "boas_praticas": {
                 label: "Boas Práticas de Fabricação",
@@ -247,7 +243,6 @@
           },
           "digital": {
             label: "Digital, E-commerce e TI",
-            icon: <Icons.Laptop className="w-4 h-4" />,
             fichas: {
               "ecommerce": {
                 label: "Loja Virtual (E-commerce)",
