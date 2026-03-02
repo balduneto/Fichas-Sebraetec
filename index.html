@@ -1,0 +1,582 @@
+import React, { useState } from 'react';
+import { Activity, AlertTriangle, Target, Droplet, ShieldAlert, ShoppingCart, BarChart3, ChevronDown, CheckCircle2, FlaskConical, Laptop, Factory, Map, Navigation, Compass, Info, BookOpen } from 'lucide-react';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from 'recharts';
+
+// --- DATABASE E INTELIGÊNCIA GEOGRÁFICA ---
+
+const regionsData = {
+  "rm_goiania": {
+    label: "Goiânia e Região",
+    context: "Maior adensamento de empresas de serviços, moda (Polo 44), cosméticos (Aparecida) e food service. Alta concorrência e necessidade de diferenciação.",
+    segments: ["textil", "digital", "alimentos", "quimica", "transversal"]
+  },
+  "daia_anapolis": {
+    label: "Anápolis (DAIA)",
+    context: "Polo farmoquímico forte, montadoras automotivas e logística. Exigência altíssima de conformidade regulatória e qualidade.",
+    segments: ["quimica", "transversal", "alimentos", "digital"]
+  },
+  "sudoeste": {
+    label: "Sudoeste (Rio Verde/Jataí)",
+    context: "Coração do agronegócio e agroindústria de alimentos (carnes, grãos). Foco total em exportação, redução de perdas e conformidade sanitária.",
+    segments: ["alimentos", "transversal"]
+  },
+  "polo_textil": {
+    label: "Polo Têxtil (Jaraguá)",
+    context: "Alta concentração de facções e confecções de jeans e moda íntima. Necessidade urgente de modernização fabril e criação de marcas próprias.",
+    segments: ["textil", "digital", "transversal"]
+  },
+  "sul": {
+    label: "Sul Goiano (Catalão)",
+    context: "Presença de montadoras, metalmecânica pesada e indústrias de fertilizantes. Demanda técnica para metrologia e melhoria de processos.",
+    segments: ["transversal", "alimentos"]
+  }
+};
+
+const segmentsData = {
+  "transversal": {
+    label: "Transversal (Metrologia)",
+    icon: <Factory className="w-4 h-4" />,
+    fichas: {
+      "metrologia": {
+        label: "Metrologia - Ensaios",
+        score: 98,
+        level: "Essencial - Blindagem Regulatória",
+        spin: {
+          p: "Falta de comprovação técnica da qualidade dos produtos e equipamentos descalibrados na linha de produção.",
+          i: "Devolução de lotes, quebra de contratos com grandes compradores B2B e multas de órgãos fiscalizadores.",
+          n: "Laudos do SENAI garantem a rastreabilidade e conformidade exigida por lei, validando o produto no mercado."
+        },
+        chartData: [
+          { name: 'Metrologia', value: 51, color: '#0ea5e9' },
+          { name: 'Outras Fichas', value: 37, color: '#94a3b8' }
+        ],
+        chartTitle: "Acessos - SENAI (Total: 88)",
+        regionalStrategies: {
+          "rm_goiania": "Foque em indústrias de Aparecida de Goiânia (metalmecânica e cosméticos) que precisam homologar produtos para grandes redes.",
+          "daia_anapolis": "Ataque o polo farmoquímico e automotivo. A calibração de instrumentos no DAIA não é diferencial, é exigência para manter a fábrica aberta.",
+          "sudoeste": "Vá nas agroindústrias e frigoríficos. Equipamentos de medição de temperatura descalibrados geram perda de toneladas de carne.",
+          "polo_textil": "Ofereça calibração e manutenção para máquinas de costura industriais e estamparia para reduzir paradas (setup).",
+          "sul": "Foque no parque de fornecedores da Mitsubishi (Catalão) e John Deere. Peça fora de tolerância é contrato cancelado."
+        }
+      },
+      "processos": {
+        label: "Melhoria de Processos",
+        score: 86,
+        level: "Alta - Otimização de Custos",
+        spin: {
+          p: "Desperdício de matéria-prima, alto tempo de setup e falta de padronização nas operações fabris.",
+          i: "Custo de produção elevado corrói a margem de lucro, tornando o produto goiano menos competitivo.",
+          n: "Mapeamento Lean elimina gargalos, aumenta a capacidade produtiva sem comprar novas máquinas e reduz custos."
+        },
+        chartData: [
+          { name: 'Gargalos', value: 35, color: '#f59e0b' },
+          { name: 'Pós-Serviço', value: 12, color: '#22c55e' }
+        ],
+        chartTitle: "Redução de Desperdícios (%)",
+        regionalStrategies: {
+          "default": "Identifique indústrias operando com gargalos óbvios no chão de fábrica e proponha aumento de OEE (Eficiência Global)."
+        }
+      }
+    }
+  },
+  "textil": {
+    label: "Têxtil e Moda",
+    icon: <ShoppingCart className="w-4 h-4" />,
+    fichas: {
+      "colecoes": {
+        label: "Desenvolvimento de Coleções",
+        score: 92,
+        level: "Altíssima - Valor Agregado",
+        spin: {
+          p: "Marcas comoditizadas e dependência de cópias (fast fashion). A única forma de competir é baixando o preço.",
+          i: "Guerra predatória de preços. Se o custo do insumo (tecido) sobe, a empresa sangra e pode falir.",
+          n: "Criação de identidade autoral com o SENAI permite cobrar mais pela peça (ticket médio) e fidelizar o atacadista."
+        },
+        chartData: [
+          { name: 'Coleções', value: 19, color: '#8b5cf6' },
+          { name: 'Produto Têxtil', value: 4, color: '#c4b5fd' }
+        ],
+        chartTitle: "Fichas do Vestuário",
+        regionalStrategies: {
+          "rm_goiania": "Região da 44: O argumento de prospecção é 'Como sair da guerra dos 10 reais'. Venda para lojistas que já têm volume e querem virar marca (grife atacadista).",
+          "polo_textil": "Jaraguá/Taquaral: Facções que só produzem para terceiros. Mostre que o SEBRAETEC financia a criação da primeira marca própria deles, aumentando a margem líquida.",
+          "default": "Elevação de ticket médio através do design estratégico de moda."
+        }
+      }
+    }
+  },
+  "alimentos": {
+    label: "Alimentos e Agro",
+    icon: <Droplet className="w-4 h-4" />,
+    fichas: {
+      "appcc": {
+        label: "Sistema APPCC (Segurança)",
+        score: 95,
+        level: "Crítica - Sobrevivência",
+        spin: {
+          p: "Riscos físicos, químicos e biológicos não mapeados na linha de processamento.",
+          i: "Recolhimento compulsório de lotes (Recall), multas da Anvisa/MAPA e destruição da reputação da marca.",
+          n: "Implementação blinda a indústria contra contaminações, evitando processos milionários e interdição fabril."
+        },
+        chartData: [
+          { name: 'Risco S/', value: 90, color: '#dc2626' },
+          { name: 'Risco C/', value: 10, color: '#10b981' }
+        ],
+        chartTitle: "Risco Sanitário (%)",
+        regionalStrategies: {
+          "sudoeste": "Abordagem obrigatória para agroindústrias de Rio Verde e Jataí focadas em exportação de carnes e grãos. APPCC é passaporte para vender para fora.",
+          "daia_anapolis": "Foco nas indústrias de alimentos processados do DAIA que fornecem para redes de fast food e hipermercados (que exigem selos de qualidade).",
+          "default": "Foque no risco sanitário. Vender segurança contra interdição do MAPA."
+        }
+      },
+      "rotulagem": {
+        label: "Rotulagem Nutricional",
+        score: 90,
+        level: "Altíssima - Adequação Legal",
+        spin: {
+          p: "Desconhecimento técnico para aplicar a nova regra da lupa frontal (Alto em Açúcar/Sódio/Gordura).",
+          i: "Retirada forçada dos produtos das gôndolas e autuações do Procon/Vigilância.",
+          n: "Garante que a embalagem está 100% dentro da lei, mantendo as vendas no supermercado."
+        },
+        chartData: [
+          { name: 'Segurança', value: 100, color: '#3b82f6' },
+          { name: 'Autuação', value: 0, color: '#ef4444' }
+        ],
+        chartTitle: "Conformidade Legal (%)",
+        regionalStrategies: {
+          "rm_goiania": "Aborde os fabricantes de biscoitos, doces e salgados caseiros de Goiânia que querem entrar no Atacadão/Assaí, mas são barrados pela embalagem ilegal.",
+          "default": "O supermercado não compra se a rotulagem estiver fora da norma atual. É uma venda consultiva de desbloqueio comercial."
+        }
+      }
+    }
+  },
+  "quimica": {
+    label: "Química e Cosméticos",
+    icon: <FlaskConical className="w-4 h-4" />,
+    fichas: {
+      "boas_praticas": {
+        label: "Boas Práticas de Fabricação",
+        score: 91,
+        level: "Altíssima - Exigência Anvisa",
+        spin: {
+          p: "Falta de POPs e manuais exigidos pela fiscalização sanitária.",
+          i: "Impossibilidade de registrar novos produtos na ANVISA, travando lançamentos e faturamento.",
+          n: "Elaboração documental completa que blinda a empresa contra multas e libera licenças de operação."
+        },
+        chartData: [
+          { name: 'BPF', value: 3, color: '#f43f5e' },
+          { name: 'Potencial', value: 15, color: '#fb7185' }
+        ],
+        chartTitle: "Acessos Registrados",
+        regionalStrategies: {
+          "daia_anapolis": "Ataque as fábricas de saneantes e cosméticos. Ofereça BPF como o passo 1 para não perder o Alvará da SUVISA-GO.",
+          "rm_goiania": "Foco no polo de cosméticos de Aparecida de Goiânia (produtos capilares e estéticos). Sem BPF, eles não exportam para outros estados.",
+          "default": "Conformidade mandatória. Não é opcional."
+        }
+      }
+    }
+  },
+  "digital": {
+    label: "Digital, E-commerce e TI",
+    icon: <Laptop className="w-4 h-4" />,
+    fichas: {
+      "ecommerce": {
+        label: "Loja Virtual (E-commerce)",
+        score: 87,
+        level: "Alta - Expansão Nacional",
+        spin: {
+          p: "Vendas restritas ao fluxo físico e uso amador do WhatsApp, com perda de tempo e erros de pedido.",
+          i: "Perda de mercado para concorrentes paulistas. Teto de faturamento local travado.",
+          n: "Implantação de plataforma robusta pelo SENAI, destravando vendas 24/7 para todo o Brasil."
+        },
+        chartData: [
+          { name: 'Local', value: 30, color: '#94a3b8' },
+          { name: 'Nacional', value: 100, color: '#3b82f6' }
+        ],
+        chartTitle: "Alcance Logístico",
+        regionalStrategies: {
+          "rm_goiania": "Região da 44: O lojista precisa vender no atacado para o BR todo via B2B digital. Transforme o catálogo de PDF em E-commerce.",
+          "polo_textil": "Jaraguá: O confeccionista precisa criar um canal direto com o consumidor final (D2C) para fugir do atravessador.",
+          "default": "Escale o faturamento quebrando a barreira geográfica de Goiás."
+        }
+      }
+    }
+  }
+};
+
+export default function App() {
+  const [selectedRegion, setSelectedRegion] = useState("rm_goiania");
+  const [selectedSegment, setSelectedSegment] = useState(regionsData["rm_goiania"].segments[0]);
+  const [selectedFicha, setSelectedFicha] = useState(Object.keys(segmentsData[regionsData["rm_goiania"].segments[0]].fichas)[0]);
+
+  // Handle Region Change
+  const handleRegionChange = (e) => {
+    const regionKey = e.target.value;
+    setSelectedRegion(regionKey);
+    const allowedSegments = regionsData[regionKey].segments;
+    const newSegment = allowedSegments[0];
+    setSelectedSegment(newSegment);
+    const newFicha = Object.keys(segmentsData[newSegment].fichas)[0];
+    setSelectedFicha(newFicha);
+  };
+
+  // Handle Segment Change
+  const handleSegmentChange = (e) => {
+    const seg = e.target.value;
+    setSelectedSegment(seg);
+    setSelectedFicha(Object.keys(segmentsData[seg].fichas)[0]);
+  };
+
+  const currentRegionData = regionsData[selectedRegion];
+  const currentSegmentData = segmentsData[selectedSegment];
+  const currentFichaData = currentSegmentData.fichas[selectedFicha];
+
+  const getRegionalStrategy = () => {
+    if (currentFichaData.regionalStrategies && currentFichaData.regionalStrategies[selectedRegion]) {
+      return currentFichaData.regionalStrategies[selectedRegion];
+    }
+    return currentFichaData.regionalStrategies?.["default"] || "Apresente os benefícios gerais da ficha, focando em redução de custos e aumento de vendas.";
+  };
+
+  const getThermometerLabelColor = (score) => {
+    if (score >= 93) return 'text-rose-600';
+    if (score >= 87) return 'text-amber-600';
+    return 'text-blue-600';
+  };
+  
+  const getScoreBg = (score) => {
+    if (score >= 93) return 'bg-rose-50 border-rose-200';
+    if (score >= 87) return 'bg-amber-50 border-amber-200';
+    return 'bg-blue-50 border-blue-200';
+  };
+
+  return (
+    // Adicionado overflow-x-hidden para evitar scroll lateral em telas de celular
+    <div className="min-h-screen bg-slate-50 font-sans text-slate-900 pb-12 overflow-x-hidden">
+      
+      {/* HEADER TOP BAR - Aumentado o pb-28 no mobile para o overlap funcionar bem */}
+      <div className="bg-slate-900 text-white pt-8 pb-28 md:pb-32 px-4 md:px-8 border-b-4 border-blue-600 relative">
+        <div className="absolute top-0 right-0 opacity-5 pointer-events-none">
+           <Map className="w-96 h-96 transform translate-x-1/3 -translate-y-1/4" />
+        </div>
+
+        <div className="max-w-7xl mx-auto relative z-10">
+          <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-6 mb-6">
+            <div className="flex items-center gap-4">
+              <div className="bg-blue-600 p-3 rounded-xl shadow-lg border border-blue-400/30 flex-shrink-0">
+                <Compass className="w-6 h-6 md:w-8 md:h-8 text-white" />
+              </div>
+              <div>
+                <h1 className="text-2xl md:text-3xl font-black tracking-tight flex flex-wrap items-center gap-2">
+                  Prospecção <span className="text-blue-400">SENAI 2026</span>
+                </h1>
+                <p className="text-slate-300 text-xs md:text-sm mt-1 font-medium leading-relaxed">Painel de Inteligência Comercial e Planejamento</p>
+              </div>
+            </div>
+          </div>
+          
+          <div className="bg-slate-800/50 rounded-xl p-4 md:p-5 border border-slate-700 max-w-4xl">
+            <h2 className="text-blue-400 text-sm md:text-base font-bold mb-2 flex items-center gap-2">
+              <BookOpen className="w-4 h-4 md:w-5 md:h-5 shrink-0" /> Bem-vindo à sua ferramenta de vendas
+            </h2>
+            <p className="text-slate-300 text-xs md:text-sm leading-relaxed">
+              Filtre a região e descubra como vender **a solução para a dor exata** que o empresário goiano está enfrentando agora. Transforme o catálogo técnico em argumentos práticos baseados no Método SPIN Selling.
+            </p>
+          </div>
+        </div>
+      </div>
+
+      {/* MAIN CONTROLS (FILTROS) */}
+      <div className="max-w-7xl mx-auto px-4 md:px-8 -mt-20 md:-mt-24 relative z-20">
+        
+        <div className="mb-3 flex flex-wrap items-center gap-2 text-slate-200 md:text-slate-600 font-medium px-1">
+          <span className="bg-blue-500 md:bg-blue-100 text-white md:text-blue-700 px-2 py-0.5 rounded text-[10px] md:text-xs font-bold uppercase shadow-sm">Passo a Passo</span>
+          <span className="text-xs md:text-sm drop-shadow-md md:drop-shadow-none text-slate-100 md:text-slate-700 font-semibold md:font-medium">Filtre o cenário do seu cliente:</span>
+        </div>
+
+        <div className="bg-white rounded-2xl shadow-xl border border-slate-200 p-5 md:p-6 flex flex-col md:flex-row gap-4 mb-8">
+          
+          {/* FILTRO 1: REGIÃO */}
+          <div className="flex flex-col w-full md:w-1/3">
+            <label className="text-[11px] md:text-xs font-extrabold text-slate-500 uppercase tracking-wider mb-2 flex items-center gap-2">
+              <span className="bg-rose-100 text-rose-700 w-5 h-5 rounded-full flex items-center justify-center text-[10px] shrink-0">1</span>
+              Qual a Região / Polo?
+            </label>
+            <div className="relative">
+              <select 
+                className="w-full appearance-none bg-rose-50 border border-rose-200 text-rose-900 py-3 px-3 md:px-4 rounded-xl focus:outline-none focus:ring-2 focus:ring-rose-500 text-sm md:text-base font-bold shadow-sm cursor-pointer transition truncate pr-8"
+                value={selectedRegion}
+                onChange={handleRegionChange}
+              >
+                {Object.entries(regionsData).map(([key, data]) => (
+                  <option key={key} value={key}>{data.label}</option>
+                ))}
+              </select>
+              <ChevronDown className="absolute right-3 top-3.5 w-4 h-4 md:w-5 md:h-5 text-rose-500 pointer-events-none" />
+            </div>
+          </div>
+
+          {/* FILTRO 2: SEGMENTO */}
+          <div className="flex flex-col w-full md:w-1/3">
+            <label className="text-[11px] md:text-xs font-bold text-slate-500 uppercase tracking-wider mb-2 flex items-center gap-2">
+              <span className="bg-slate-200 text-slate-700 w-5 h-5 rounded-full flex items-center justify-center text-[10px] shrink-0">2</span>
+              Qual o Segmento?
+            </label>
+            <div className="relative">
+              <select 
+                className="w-full appearance-none bg-slate-50 border border-slate-300 text-slate-800 py-3 px-3 md:px-4 rounded-xl focus:outline-none focus:ring-2 focus:ring-slate-500 text-sm md:text-base font-semibold shadow-sm cursor-pointer transition truncate pr-8"
+                value={selectedSegment}
+                onChange={handleSegmentChange}
+              >
+                {currentRegionData.segments.map((segKey) => (
+                  <option key={segKey} value={segKey}>{segmentsData[segKey].label}</option>
+                ))}
+              </select>
+              <ChevronDown className="absolute right-3 top-3.5 w-4 h-4 md:w-5 md:h-5 text-slate-400 pointer-events-none" />
+            </div>
+          </div>
+
+          {/* FILTRO 3: FICHA */}
+          <div className="flex flex-col w-full md:w-1/3">
+            <label className="text-[11px] md:text-xs font-bold text-slate-500 uppercase tracking-wider mb-2 flex items-center gap-2">
+              <span className="bg-blue-100 text-blue-700 w-5 h-5 rounded-full flex items-center justify-center text-[10px] shrink-0">3</span>
+              Ficha a ser Ofertada
+            </label>
+            <div className="relative">
+              <select 
+                className="w-full appearance-none bg-blue-50 border border-blue-200 text-blue-900 py-3 px-3 md:px-4 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-600 text-sm md:text-base font-bold shadow-sm cursor-pointer transition truncate pr-8"
+                value={selectedFicha}
+                onChange={(e) => setSelectedFicha(e.target.value)}
+              >
+                {Object.entries(currentSegmentData.fichas).map(([key, data]) => (
+                  <option key={key} value={key}>{data.label}</option>
+                ))}
+              </select>
+              <ChevronDown className="absolute right-3 top-3.5 w-4 h-4 md:w-5 md:h-5 text-blue-600 pointer-events-none" />
+            </div>
+          </div>
+
+        </div>
+
+        {/* DASHBOARD CONTENT GRID */}
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 md:gap-8">
+          
+          {/* SIDEBAR: ESTRATÉGIA GEOGRÁFICA & INDICADORES */}
+          <div className="lg:col-span-4 flex flex-col gap-6">
+            
+            {/* CARD: DIRETRIZ REGIONAL */}
+            <div className="bg-rose-600 rounded-2xl shadow-lg border border-rose-500 p-5 md:p-6 text-white relative overflow-hidden">
+              <h2 className="text-[10px] md:text-xs font-bold text-rose-200 uppercase tracking-widest mb-3 flex items-center gap-2">
+                <Map className="w-4 h-4" /> Entenda a Região
+              </h2>
+              <h3 className="text-base md:text-lg font-black mb-2 leading-tight">{currentRegionData.label}</h3>
+              <p className="text-xs md:text-sm text-rose-50 leading-relaxed">
+                {currentRegionData.context}
+              </p>
+              <div className="mt-4 pt-4 border-t border-rose-400/50 flex items-start gap-2">
+                <Info className="w-4 h-4 text-rose-200 mt-0.5 shrink-0" />
+                <p className="text-[10px] md:text-[11px] text-rose-100">
+                  <strong>Dica:</strong> Mostre que você conhece a realidade e os desafios locais para gerar empatia imediata com o empresário.
+                </p>
+              </div>
+            </div>
+
+            {/* CARD: TÁTICA DA FICHA NA REGIÃO */}
+            <div className="bg-white rounded-2xl shadow-sm border-2 border-slate-800 p-5 md:p-6 relative mt-4 md:mt-0">
+              <div className="absolute top-0 left-5 -translate-y-1/2 bg-slate-800 text-white text-[9px] md:text-[10px] font-bold uppercase tracking-wider px-3 py-1 rounded-full shadow-md">
+                Gatilho Regional
+              </div>
+              <h2 className="text-xs md:text-sm font-bold text-slate-800 mb-3 mt-1 flex items-center gap-2">
+                <Target className="w-4 h-4 text-rose-600 shrink-0" /> Ação de Prospecção
+              </h2>
+              <p className="text-slate-700 text-xs md:text-sm font-medium leading-relaxed bg-slate-50 p-3 md:p-4 rounded-xl border border-slate-200">
+                {getRegionalStrategy()}
+              </p>
+            </div>
+
+            {/* THERMOMETER */}
+            <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-5 md:p-6 flex flex-col items-center text-center">
+              <h2 className="text-xs md:text-sm font-bold text-slate-500 uppercase tracking-wider mb-4 w-full flex justify-center items-center gap-2">
+                 Termômetro de Vendas
+                 <Activity className="w-4 h-4 text-slate-400 shrink-0" />
+              </h2>
+              
+              <div className="relative w-32 h-32 md:w-36 md:h-36 flex items-center justify-center mb-2 mx-auto">
+                <svg viewBox="0 0 36 36" className="w-full h-full transform -rotate-90">
+                  <path className="text-slate-100" strokeWidth="4" stroke="currentColor" fill="none" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
+                  <path
+                    className={getThermometerLabelColor(currentFichaData.score).replace('text-', 'text-')}
+                    strokeWidth="4"
+                    strokeDasharray={`${currentFichaData.score}, 100`}
+                    strokeLinecap="round"
+                    stroke="currentColor"
+                    fill="none"
+                    d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
+                  />
+                </svg>
+                {/* Substituição do margin-top manual pelo inset-0 para centralização perfeita no mobile */}
+                <div className="absolute inset-0 flex flex-col items-center justify-center">
+                  <span className={`text-4xl md:text-5xl font-black tracking-tighter ${getThermometerLabelColor(currentFichaData.score)}`}>
+                    {currentFichaData.score}
+                  </span>
+                </div>
+              </div>
+              <div className={`mt-2 px-4 py-1.5 rounded-full font-bold text-[10px] md:text-xs border w-full max-w-[200px] truncate ${getScoreBg(currentFichaData.score)} ${getThermometerLabelColor(currentFichaData.score)}`}>
+                {currentFichaData.level}
+              </div>
+              
+              <p className="text-[10px] md:text-[11px] text-slate-500 mt-4 leading-relaxed px-2">
+                Scores &gt; 90 indicam venda fácil (necessidade vital/risco de multas).
+              </p>
+            </div>
+
+          </div>
+
+          {/* MAIN COLUMN: SPIN METHODOLOGY CARDS */}
+          <div className="lg:col-span-8 flex flex-col gap-6">
+            
+            <div className="bg-blue-900 rounded-2xl p-5 md:p-6 shadow-lg text-white">
+              <h3 className="font-bold text-base md:text-lg flex items-center gap-2 mb-3">
+                <BarChart3 className="w-4 h-4 md:w-5 md:h-5 text-blue-400 shrink-0" /> Roteiro de Reunião: Método SPIN
+              </h3>
+              <p className="text-blue-100 text-xs md:text-sm leading-relaxed mb-4">
+                Não ofereça a ficha técnica de cara. Conduza o raciocínio do empresário para que ele mesmo perceba a dor antes de você dar o preço.
+              </p>
+              {/* flex-wrap garante visualização correta dos cards no mobile */}
+              <div className="flex flex-wrap gap-2 text-[10px] md:text-xs font-semibold">
+                <span className="bg-blue-800 px-2 py-1 rounded">1. Situação (S)</span>
+                <span className="bg-amber-800/60 text-amber-100 px-2 py-1 rounded">2. Problema (P)</span>
+                <span className="bg-rose-800/60 text-rose-100 px-2 py-1 rounded">3. Implicação (I)</span>
+                <span className="bg-emerald-800/60 text-emerald-100 px-2 py-1 rounded">4. Necessidade (N)</span>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 md:gap-6">
+              
+              {/* SITUAÇÃO */}
+              <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-5 md:p-6 flex flex-col group hover:border-blue-400 transition-colors h-full">
+                <div className="flex items-center gap-3 mb-3">
+                  <div className="bg-blue-100 text-blue-700 w-8 h-8 md:w-10 md:h-10 rounded-xl flex items-center justify-center font-black text-base md:text-lg shrink-0">S</div>
+                  <div>
+                    <h3 className="text-base md:text-lg font-extrabold text-slate-800 leading-tight">Situação</h3>
+                    <p className="text-[9px] md:text-[10px] text-slate-400 uppercase font-bold">O Cenário Atual</p>
+                  </div>
+                </div>
+                <div className="flex-grow mt-2">
+                  <p className="text-slate-600 text-xs md:text-sm leading-relaxed">
+                    <span className="font-semibold text-slate-800">No polo de {currentRegionData.label}:</span> {currentRegionData.context}
+                  </p>
+                </div>
+                <div className="mt-4 pt-3 border-t border-slate-100 flex items-start gap-2">
+                  <Info className="w-3.5 h-3.5 md:w-4 md:h-4 text-blue-400 shrink-0 mt-0.5" />
+                  <span className="text-[10px] md:text-[11px] text-slate-500">Valide o cenário. Ex: "Como estão as operações aqui na região?"</span>
+                </div>
+              </div>
+
+              {/* PROBLEMA */}
+              <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-5 md:p-6 flex flex-col group hover:border-amber-400 transition-colors h-full">
+                <div className="flex items-center gap-3 mb-3">
+                  <div className="bg-amber-100 text-amber-700 w-8 h-8 md:w-10 md:h-10 rounded-xl flex items-center justify-center font-black text-base md:text-lg shrink-0">P</div>
+                  <div>
+                    <h3 className="text-base md:text-lg font-extrabold text-slate-800 leading-tight">Problema</h3>
+                    <p className="text-[9px] md:text-[10px] text-slate-400 uppercase font-bold">A Dor do Cliente</p>
+                  </div>
+                </div>
+                <div className="flex-grow mt-2">
+                  <p className="text-slate-800 font-medium text-xs md:text-sm leading-relaxed">
+                    {currentFichaData.spin.p}
+                  </p>
+                </div>
+                <div className="mt-4 pt-3 border-t border-slate-100 flex items-start gap-2">
+                  <Info className="w-3.5 h-3.5 md:w-4 md:h-4 text-amber-500 shrink-0 mt-0.5" />
+                  <span className="text-[10px] md:text-[11px] text-slate-500">Investigue: "Vocês têm enfrentado essa dificuldade ultimamente?"</span>
+                </div>
+              </div>
+
+              {/* IMPLICAÇÃO */}
+              <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-5 md:p-6 flex flex-col sm:col-span-2 border-l-4 border-l-rose-500">
+                <div className="flex items-center justify-between mb-3">
+                  <div className="flex items-center gap-3">
+                    <div className="bg-rose-100 text-rose-700 w-8 h-8 md:w-10 md:h-10 rounded-xl flex items-center justify-center font-black text-base md:text-lg shrink-0">I</div>
+                    <div>
+                      <h3 className="text-base md:text-lg font-extrabold text-slate-800 leading-tight">Implicação</h3>
+                      <p className="text-[9px] md:text-[10px] text-rose-500 uppercase font-bold">O Custo da Inércia</p>
+                    </div>
+                  </div>
+                  <ShieldAlert className="w-5 h-5 md:w-6 md:h-6 text-rose-200 shrink-0" />
+                </div>
+                <div className="bg-rose-50 rounded-xl p-3 md:p-4 border border-rose-100 mt-2">
+                  <p className="text-rose-900 font-semibold text-xs md:text-sm leading-relaxed">
+                    {currentFichaData.spin.i}
+                  </p>
+                </div>
+                <div className="mt-3 flex items-start gap-2 px-1">
+                  <Info className="w-3.5 h-3.5 md:w-4 md:h-4 text-rose-400 shrink-0 mt-0.5" />
+                  <span className="text-[10px] md:text-[11px] text-slate-600">O clímax. Faça o cliente calcular mentalmente o prejuízo que terá se ignorar o problema. Aumente a urgência.</span>
+                </div>
+              </div>
+
+              {/* NECESSIDADE E GRÁFICO */}
+              <div className="bg-emerald-50 rounded-2xl shadow-sm border border-emerald-200 p-5 md:p-6 flex flex-col sm:col-span-2">
+                <div className="flex items-center justify-between mb-4">
+                  <div className="flex items-center gap-3">
+                    <div className="bg-emerald-500 text-white w-8 h-8 md:w-10 md:h-10 rounded-xl flex items-center justify-center font-black text-base md:text-lg shadow-md shadow-emerald-500/30 shrink-0">N</div>
+                    <div>
+                      <h3 className="text-base md:text-lg font-extrabold text-emerald-950 leading-tight">Necessidade de Solução</h3>
+                      <p className="text-[9px] md:text-[10px] text-emerald-700 uppercase font-bold">Oferta da Ficha SENAI</p>
+                    </div>
+                  </div>
+                  <CheckCircle2 className="w-5 h-5 md:w-6 md:h-6 text-emerald-500 shrink-0" />
+                </div>
+                
+                <div className="bg-white/60 p-3 md:p-4 rounded-xl border border-emerald-100 mb-5 md:mb-6">
+                  <p className="text-emerald-900 text-sm md:text-base leading-relaxed font-bold">
+                    {currentFichaData.spin.n}
+                  </p>
+                </div>
+                
+                {/* Min-w-0 resolve bugs do recharts estourando a tela em display flex no celular */}
+                <div className="bg-white rounded-xl shadow-sm border border-emerald-100 p-4 md:p-5 w-full flex flex-col md:flex-row items-center gap-4 md:gap-6 min-w-0">
+                  
+                  <div className="w-full md:w-1/2 flex flex-col justify-center">
+                    <h4 className="text-[11px] md:text-xs font-bold text-slate-500 uppercase tracking-wider mb-2 flex items-center gap-2">
+                      <BarChart3 className="w-3 h-3 md:w-4 md:h-4" /> Argumento Visual
+                    </h4>
+                    <p className="text-xs md:text-sm text-slate-600 leading-relaxed mb-2">
+                      Mostre os dados ao lado para provar que a solução já foi validada e gera resultados.
+                    </p>
+                    <p className="text-[9px] md:text-[10px] text-slate-400 italic">
+                      Base: Relatório Oficial 2026
+                    </p>
+                  </div>
+
+                  {/* Altura mínima e estrutura garantem que gráfico Recharts funcione em Mobile */}
+                  <div className="h-40 md:h-48 w-full md:w-1/2 min-w-0">
+                    <p className="text-[9px] md:text-[10px] text-slate-500 text-center mb-1 uppercase font-bold tracking-wider truncate px-2">
+                      {currentFichaData.chartTitle}
+                    </p>
+                    <ResponsiveContainer width="100%" height="100%">
+                      <BarChart data={currentFichaData.chartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }} layout="vertical">
+                        <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" horizontal={false} />
+                        <XAxis type="number" stroke="#94a3b8" fontSize={9} tickLine={false} axisLine={false} />
+                        <YAxis dataKey="name" type="category" stroke="#64748b" fontSize={10} tickLine={false} axisLine={false} width={80} />
+                        <Tooltip cursor={{fill: '#f8fafc'}} contentStyle={{borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '11px', padding: '6px'}} />
+                        <Bar dataKey="value" radius={[0, 4, 4, 0]} barSize={16}>
+                          {currentFichaData.chartData.map((entry, index) => (
+                            <Cell key={`cell-${index}`} fill={entry.color} />
+                          ))}
+                        </Bar>
+                      </BarChart>
+                    </ResponsiveContainer>
+                  </div>
+                </div>
+
+              </div>
+
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
